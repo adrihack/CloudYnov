@@ -1,0 +1,61 @@
+version: "3.3"
+
+networks:
+  main:
+
+services:
+  python-app:
+    image: localhost:5000/python-app:latest
+    build:
+      context: ./python-app
+    networks:
+      main:
+        aliases:
+          - app.testapp
+          - app
+    deploy:
+      replicas: 3
+      labels:
+        testapp: 'app'
+      placement:
+        constraints:
+          - node.role == worker
+    depends_on:
+      - database
+
+  database:
+    image: redis
+    networks:
+      main:
+        aliases:
+          - db.testapp
+          - db
+    deploy:
+      replicas: 1
+      labels:
+        testapp: 'db'
+      placement:
+        constraints:
+          - node.role == worker
+
+  app-proxy:
+    image: localhost:5000/app-proxy
+    build:
+      context: ./proxy
+    ports:
+      - 8080:8080
+    networks:
+      main:
+        aliases:
+          - proxy.testapp
+          - proxy
+    deploy:
+      replicas: 1
+      labels:
+        testapp: 'proxy'
+      placement:
+        constraints:
+          - node.role == worker
+    depends_on:
+      - python-app
+
